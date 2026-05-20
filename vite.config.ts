@@ -26,9 +26,14 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      // Alias @ to the src directory
       '@': path.resolve(__dirname, './src'),
     },
+    dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react-router'],
+  },
+
+  optimizeDeps: {
+    dedupe: ['react', 'react-dom', 'react-router'],
+    include: ['react', 'react-dom', 'react-router', 'motion/react'],
   },
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.

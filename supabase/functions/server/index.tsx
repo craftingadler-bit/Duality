@@ -1,11 +1,20 @@
 import { Hono } from "npm:hono";
 import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
-import * as kv from "./kv_store.tsx";
+import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
+
+// Supabase Client initialisieren
+const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+const supabaseKey =
+  Deno.env.get("SUPABASE_ANON_KEY") ??
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
+  "";
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 const app = new Hono();
 
 // Enable logger
-app.use('*', logger(console.log));
+app.use("*", logger(console.log));
 
 // Enable CORS for all routes and methods
 app.use(
@@ -29,11 +38,15 @@ app.get("/make-server-be23ac2a/health", (c) => {
 // Get all events
 app.get("/make-server-be23ac2a/events", async (c) => {
   try {
-    const events = await kv.getByPrefix("event:");
+    const { data: events, error } = await supabase
+      .from("events")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
     return c.json({ success: true, data: events || [] });
   } catch (error) {
     console.error("Error fetching events:", error);
-    // Return empty array on error to prevent frontend issues
     return c.json({ success: true, data: [] });
   }
 });
@@ -42,8 +55,13 @@ app.get("/make-server-be23ac2a/events", async (c) => {
 app.get("/make-server-be23ac2a/events/:id", async (c) => {
   try {
     const id = c.req.param("id");
-    const event = await kv.get(`event:${id}`);
+    const { data: event, error } = await supabase
+      .from("events")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
 
+    if (error) throw error;
     if (!event) {
       return c.json({ success: false, error: "Event not found" }, 404);
     }
@@ -59,42 +77,49 @@ app.get("/make-server-be23ac2a/events/:id", async (c) => {
 app.post("/make-server-be23ac2a/events", async (c) => {
   try {
     const body = await c.req.json();
-    const eventId = crypto.randomUUID();
+    
+    const { data, error } = await supabase
+      .from("events")
+      .insert([{
+        ...body,
+        attendees: 0,
+        created_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
 
-    const event = {
-      id: eventId,
-      ...body,
-      attendees: 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    await kv.set(`event:${eventId}`, event);
-
-    return c.json({ success: true, data: event }, 201);
+    if (error) throw error;
+    return c.json({ success: true, data }, 201);
   } catch (error) {
     console.error("Error creating event:", error);
     return c.json({ success: false, error: error.message }, 500);
   }
 });
 
-// Join event
+// Join event (Inkrementiert Teilnehmer direkt in DB)
 app.post("/make-server-be23ac2a/events/:id/join", async (c) => {
   try {
     const id = c.req.param("id");
-    const event = await kv.get(`event:${id}`);
+    
+    // Zuerst aktuellen Stand holen
+    const { data: event, error: fetchError } = await supabase
+      .from("events")
+      .select("attendees")
+      .eq("id", id)
+      .single();
 
-    if (!event) {
-      return c.json({ success: false, error: "Event not found" }, 404);
-    }
+    if (fetchError || !event) throw new Error("Event not found");
 
-    // Increment attendees
-    event.attendees = (event.attendees || 0) + 1;
-    event.updated_at = new Date().toISOString();
+    // Update ausführen
+    const { data, error: updateError } = await supabase
+      .from("events")
+      .update({ attendees: (event.attendees || 0) + 1 })
+      .eq("id", id)
+      .select()
+      .single();
 
-    await kv.set(`event:${id}`, event);
-
-    return c.json({ success: true, data: event });
+    if (updateError) throw updateError;
+    return c.json({ success: true, data });
   } catch (error) {
     console.error("Error joining event:", error);
     return c.json({ success: false, error: error.message }, 500);
@@ -106,11 +131,15 @@ app.post("/make-server-be23ac2a/events/:id/join", async (c) => {
 // Get all housing listings
 app.get("/make-server-be23ac2a/housing", async (c) => {
   try {
-    const housing = await kv.getByPrefix("housing:");
+    const { data: housing, error } = await supabase
+      .from("housing")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
     return c.json({ success: true, data: housing || [] });
   } catch (error) {
     console.error("Error fetching housing:", error);
-    // Return empty array on error to prevent frontend issues
     return c.json({ success: true, data: [] });
   }
 });
@@ -119,15 +148,20 @@ app.get("/make-server-be23ac2a/housing", async (c) => {
 app.get("/make-server-be23ac2a/housing/:id", async (c) => {
   try {
     const id = c.req.param("id");
-    const housing = await kv.get(`housing:${id}`);
+    const { data: listing, error } = await supabase
+      .from("housing")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
 
-    if (!housing) {
+    if (error) throw error;
+    if (!listing) {
       return c.json({ success: false, error: "Housing not found" }, 404);
     }
 
-    return c.json({ success: true, data: housing });
+    return c.json({ success: true, data: listing });
   } catch (error) {
-    console.error("Error fetching housing:", error);
+    console.error("Error fetching housing listing:", error);
     return c.json({ success: false, error: error.message }, 500);
   }
 });
@@ -136,18 +170,18 @@ app.get("/make-server-be23ac2a/housing/:id", async (c) => {
 app.post("/make-server-be23ac2a/housing", async (c) => {
   try {
     const body = await c.req.json();
-    const housingId = crypto.randomUUID();
+    
+    const { data, error } = await supabase
+      .from("housing")
+      .insert([{
+        ...body,
+        created_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
 
-    const housing = {
-      id: housingId,
-      ...body,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    await kv.set(`housing:${housingId}`, housing);
-
-    return c.json({ success: true, data: housing }, 201);
+    if (error) throw error;
+    return c.json({ success: true, data }, 201);
   } catch (error) {
     console.error("Error creating housing:", error);
     return c.json({ success: false, error: error.message }, 500);
@@ -159,11 +193,15 @@ app.post("/make-server-be23ac2a/housing", async (c) => {
 // Get all marketplace listings
 app.get("/make-server-be23ac2a/marketplace", async (c) => {
   try {
-    const listings = await kv.getByPrefix("listing:");
+    const { data: listings, error } = await supabase
+      .from("listings")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
     return c.json({ success: true, data: listings || [] });
   } catch (error) {
     console.error("Error fetching marketplace listings:", error);
-    // Return empty array on error to prevent frontend issues
     return c.json({ success: true, data: [] });
   }
 });
@@ -172,21 +210,21 @@ app.get("/make-server-be23ac2a/marketplace", async (c) => {
 app.post("/make-server-be23ac2a/marketplace", async (c) => {
   try {
     const body = await c.req.json();
-    const listingId = crypto.randomUUID();
+    
+    const { data, error } = await supabase
+      .from("listings")
+      .insert([{
+        ...body,
+        status: "ACTIVE",
+        views_count: 0,
+        favorites_count: 0,
+        created_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
 
-    const listing = {
-      id: listingId,
-      ...body,
-      status: "ACTIVE",
-      views_count: 0,
-      favorites_count: 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    await kv.set(`listing:${listingId}`, listing);
-
-    return c.json({ success: true, data: listing }, 201);
+    if (error) throw error;
+    return c.json({ success: true, data }, 201);
   } catch (error) {
     console.error("Error creating marketplace listing:", error);
     return c.json({ success: false, error: error.message }, 500);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router';
-import { Heart, X, MapPin, Users, Calendar, Clock, Sparkles, Plus } from 'lucide-react';
+import { Heart, X, MapPin, Users, Calendar, Plus, Filter } from 'lucide-react';
 import { eventsAPI } from '../../lib/api';
 
 interface UserProfile {
@@ -21,8 +21,11 @@ export function EventsView() {
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // --- NEU: Filter State ---
+  const [selectedCategory, setSelectedCategory] = useState('Alle');
+  const categories = ['Alle', 'Sports', 'Gaming', 'Party', 'Art', 'Study', 'Food'];
 
-  // Load events from Supabase
   useEffect(() => {
     loadEvents();
   }, []);
@@ -31,102 +34,42 @@ export function EventsView() {
     setIsLoading(true);
     try {
       const { data, error } = await eventsAPI.getAll();
-
       if (error) {
         console.error('Error loading events:', error);
-        // Fall back to mock data if error
-        setEvents(mockEvents);
-      } else if (data && data.length > 0) {
-        // Use real data from Supabase
+        setEvents([]);
+      } else if (data) {
         setEvents(data);
-      } else {
-        // No events yet, use mock data
-        setEvents(mockEvents);
       }
     } catch (error) {
       console.error('Error loading events:', error);
-      setEvents(mockEvents);
+      setEvents([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const mockEvents = [
-    {
-      id: 1,
-      title: 'Volleyball at Neckarwiese',
-      category: 'Sports',
-      host: 'Max & Friends',
-      date: 'Tomorrow, 18:00',
-      location: 'Neckarwiese',
-      attendees: 8,
-      maxAttendees: 12,
-      image: 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800&h=600&fit=crop',
-      description: 'Casual volleyball game, all levels welcome!',
-      tags: ['Outdoor', 'Free', 'Beginner friendly'],
-      sponsored: false
-    },
-    {
-      id: 2,
-      title: 'Gaming Night @ Campus',
-      category: 'Gaming',
-      host: 'DHBW Esports Club',
-      date: 'Friday, 20:00',
-      location: 'Campus Building A',
-      attendees: 15,
-      maxAttendees: 20,
-      image: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800&h=600&fit=crop',
-      description: 'Mario Kart tournament + casual gaming',
-      tags: ['Indoor', 'Free', 'Pizza included'],
-      sponsored: true
-    },
-    {
-      id: 3,
-      title: 'Ceramic Painting Workshop',
-      category: 'Art',
-      host: 'Creative Minds MA',
-      date: 'Saturday, 14:00',
-      location: 'Kunsthalle Mannheim',
-      attendees: 5,
-      maxAttendees: 10,
-      image: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&h=600&fit=crop',
-      description: 'Create your own ceramic masterpiece!',
-      tags: ['Creative', '€15', 'Materials included'],
-      sponsored: true
-    },
-    {
-      id: 4,
-      title: 'Pub Crawl Mannheim',
-      category: 'Party',
-      host: 'Social Squad',
-      date: 'Saturday, 21:00',
-      location: 'Starting at Jungbusch',
-      attendees: 24,
-      maxAttendees: 30,
-      image: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=800&h=600&fit=crop',
-      description: '5 bars, special student deals, new friends!',
-      tags: ['Nightlife', '€10 entry', '21+'],
-      sponsored: false
-    }
-  ];
+  // --- NEU: Filter Logik ---
+  const filteredEvents = selectedCategory === 'Alle' 
+    ? events 
+    : events.filter(event => event.category === selectedCategory);
 
-  const currentEvent = events[currentIndex];
+  const currentEvent = filteredEvents[currentIndex];
 
   const handleSwipe = async (direction: 'left' | 'right') => {
+    if (!currentEvent) return;
+    
     setSwipeDirection(direction);
 
-    // If swiped right (join event) and event has an ID
     if (direction === 'right' && currentEvent.id) {
       try {
         await eventsAPI.join(currentEvent.id);
-        console.log('Joined event:', currentEvent.id);
       } catch (error) {
         console.error('Error joining event:', error);
       }
     }
 
     setTimeout(() => {
-      if (currentIndex < events.length - 1) {
+      if (currentIndex < filteredEvents.length - 1) {
         setCurrentIndex(currentIndex + 1);
       } else {
         setCurrentIndex(0);
@@ -135,32 +78,24 @@ export function EventsView() {
     }, 300);
   };
 
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('de-DE', { 
+      weekday: 'short', 
+      day: '2-digit', 
+      month: '2-digit', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    }) + " Uhr";
+  };
+
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Lade Events...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!currentEvent) {
-    return (
-      <div className="h-full flex items-center justify-center bg-background">
-        <div className="text-center px-6">
-          <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
-            <Calendar className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <h3 className="text-lg font-medium text-foreground mb-2">Noch keine Events</h3>
-          <p className="text-sm text-muted-foreground mb-4">Sei der Erste und erstelle ein Event!</p>
-          <button
-            onClick={() => navigate('/events/create')}
-            className="bg-primary text-white px-6 py-3 rounded-xl hover:bg-red-700 transition-colors"
-          >
-            Event erstellen
-          </button>
+          <p className="text-muted-foreground">Lade Campus Events...</p>
         </div>
       </div>
     );
@@ -168,10 +103,13 @@ export function EventsView() {
 
   return (
     <div className="h-full flex flex-col bg-background">
-      {/* Header */}
+      {/* Header mit Filter */}
       <div className="px-6 lg:px-8 pt-12 lg:pt-8 pb-4 bg-card border-b border-border">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-2xl lg:text-3xl mb-1">Events</h2>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-2xl lg:text-3xl font-bold text-foreground">Events</h2>
+            <p className="text-sm text-muted-foreground">Entdecke Mannheim</p>
+          </div>
           <button
             onClick={() => navigate('/events/create')}
             className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center hover:bg-red-700 transition-colors shadow-lg"
@@ -179,191 +117,139 @@ export function EventsView() {
             <Plus className="w-6 h-6" />
           </button>
         </div>
-        <p className="text-sm text-muted-foreground lg:hidden">Swipe right to join, left to skip</p>
-        <p className="text-sm text-muted-foreground hidden lg:block">Entdecke Events in deiner Nähe</p>
+
+        {/* --- NEU: Horizontale Filter-Leiste --- */}
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => {
+                setSelectedCategory(cat);
+                setCurrentIndex(0); // Reset Swipe-Index bei Filterwechsel
+              }}
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                selectedCategory === cat 
+                  ? 'bg-primary text-white shadow-md' 
+                  : 'bg-secondary text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Mobile: Swipe Card View */}
-      <div className="lg:hidden flex-1 flex items-center justify-center p-6">
-        <div
-          className={`w-full max-w-sm bg-card rounded-3xl overflow-hidden shadow-2xl border-2 border-border transition-all duration-300 ${
-            swipeDirection === 'left' ? '-translate-x-full opacity-0 rotate-12' :
-            swipeDirection === 'right' ? 'translate-x-full opacity-0 -rotate-12' : ''
-          }`}
-        >
-          {/* Image */}
-          <div className="relative h-80 bg-muted">
-            <img
-              src={currentEvent.image}
-              alt={currentEvent.title}
-              className="w-full h-full object-cover"
-            />
-            {currentEvent.sponsored && (
-              <div className="absolute top-4 right-4 bg-accent text-foreground px-3 py-1 rounded-full text-sm flex items-center gap-1">
-                <Sparkles className="w-3 h-3" />
-                Sponsored
-              </div>
-            )}
-            <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm">
-              {currentEvent.category}
-            </div>
-
-            {/* Gradient Overlay */}
-            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/80 to-transparent"></div>
-
-            {/* Title on Image */}
-            <div className="absolute bottom-4 left-4 right-4 text-white">
-              <h3 className="text-2xl mb-1">{currentEvent.title}</h3>
-              <p className="text-white/80 text-sm">by {currentEvent.host}</p>
-            </div>
+      {/* Main Content Area */}
+      {filteredEvents.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center">
+            <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-20" />
+            <p className="text-muted-foreground">Keine Events in dieser Kategorie gefunden.</p>
+            <button 
+              onClick={() => setSelectedCategory('Alle')}
+              className="text-primary mt-2 font-medium"
+            >
+              Alle anzeigen
+            </button>
           </div>
-
-          {/* Details */}
-          <div className="p-6">
-            <p className="text-sm mb-4 text-foreground/80">{currentEvent.description}</p>
-
-            {/* Info Grid */}
-            <div className="space-y-3 mb-4">
-              <div className="flex items-center gap-3 text-sm">
-                <Calendar className="w-4 h-4 text-primary" />
-                <span>{currentEvent.date}</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <MapPin className="w-4 h-4 text-primary" />
-                <span>{currentEvent.location}</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <Users className="w-4 h-4 text-primary" />
-                <span>{currentEvent.attendees}/{currentEvent.maxAttendees} going</span>
-                <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-full"
-                    style={{ width: `${(currentEvent.attendees / currentEvent.maxAttendees) * 100}%` }}
-                  ></div>
+        </div>
+      ) : (
+        <>
+          {/* Mobile Swipe Card */}
+          <div className="lg:hidden flex-1 flex flex-col items-center justify-center p-6 gap-6">
+            <div
+              onClick={() => navigate(`/events/${currentEvent.id}`)} // --- NEU: Klick für Details ---
+              className={`w-full max-w-sm bg-card rounded-3xl overflow-hidden shadow-2xl border border-border cursor-pointer active:scale-[0.98] transition-all duration-300 ${
+                swipeDirection === 'left' ? '-translate-x-full opacity-0 rotate-12' :
+                swipeDirection === 'right' ? 'translate-x-full opacity-0 -rotate-12' : ''
+              }`}
+            >
+              <div className="relative h-80 bg-muted">
+                <img
+                  src={currentEvent.image_url || 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=800'}
+                  alt={currentEvent.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm">
+                  {currentEvent.category}
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/80 to-transparent"></div>
+                <div className="absolute bottom-4 left-4 right-4 text-white">
+                  <h3 className="text-2xl font-bold mb-1">{currentEvent.title}</h3>
+                  <p className="text-white/80 text-sm flex items-center gap-1">
+                    <MapPin size={14} /> {currentEvent.location}
+                  </p>
                 </div>
               </div>
-            </div>
 
-            {/* Tags */}
-            <div className="flex flex-wrap gap-2">
-              {currentEvent.tags.map((tag, i) => (
-                <span key={i} className="px-3 py-1 bg-secondary rounded-full text-xs">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Swipe Buttons - Mobile Only */}
-      <div className="lg:hidden px-6 pb-8 flex items-center justify-center gap-6">
-        <button
-          onClick={() => handleSwipe('left')}
-          className="w-16 h-16 bg-red-50 border-2 border-red-200 rounded-full flex items-center justify-center hover:bg-red-100 transition-colors"
-        >
-          <X className="w-7 h-7 text-red-500" />
-        </button>
-        <div className="text-center">
-          <p className="text-xs text-muted-foreground">
-            {currentIndex + 1} of {events.length}
-          </p>
-        </div>
-        <button
-          onClick={() => handleSwipe('right')}
-          className="w-16 h-16 bg-green-50 border-2 border-green-200 rounded-full flex items-center justify-center hover:bg-green-100 transition-colors"
-        >
-          <Heart className="w-7 h-7 text-green-500" />
-        </button>
-      </div>
-
-      {/* Desktop: Grid View */}
-      <div className="hidden lg:block flex-1 overflow-y-auto p-8">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Lade Events...</p>
-            </div>
-          </div>
-        ) : events.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center px-6">
-              <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
-                <Calendar className="w-8 h-8 text-muted-foreground" />
+              <div className="p-6">
+                <p className="text-sm mb-4 text-foreground/80 line-clamp-2">{currentEvent.description}</p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 text-sm">
+                    <Calendar className="w-4 h-4 text-primary" />
+                    <span>{formatDate(currentEvent.event_date)}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <Users className="w-4 h-4 text-primary" />
+                    <span>{currentEvent.attendees || 0} / {currentEvent.max_attendees} Teilnehmer</span>
+                  </div>
+                </div>
+                <p className="mt-4 text-xs text-primary font-bold text-center uppercase tracking-wider">Tippen für Details</p>
               </div>
-              <h3 className="text-lg font-medium text-foreground mb-2">Noch keine Events</h3>
-              <p className="text-sm text-muted-foreground mb-4">Sei der Erste und erstelle ein Event!</p>
-              <button
-                onClick={() => navigate('/events/create')}
-                className="bg-primary text-white px-6 py-3 rounded-xl hover:bg-red-700 transition-colors"
-              >
-                Event erstellen
+            </div>
+
+            {/* Mobile Buttons */}
+            <div className="flex items-center justify-center gap-6">
+              <button onClick={(e) => { e.stopPropagation(); handleSwipe('left'); }} className="w-16 h-16 bg-white rounded-full shadow-lg flex items-center justify-center border border-border active:scale-90 transition-transform">
+                <X className="w-7 h-7 text-foreground" />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); handleSwipe('right'); }} className="w-16 h-16 bg-white rounded-full shadow-lg flex items-center justify-center border border-border active:scale-90 transition-transform">
+                <Heart className="w-7 h-7 text-green-500 fill-green-500" />
               </button>
             </div>
           </div>
-        ) : (
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 max-w-7xl mx-auto">
-            {events.map((event) => (
-            <div
-              key={event.id}
-              onClick={() => navigate(`/events/${event.id}`)}
-              className="bg-card rounded-2xl overflow-hidden shadow-lg border border-border hover:shadow-xl transition-all cursor-pointer hover:scale-[1.02]"
-            >
-              {/* Image */}
-              <div className="relative h-48 bg-muted">
-                <img
-                  src={event.image}
-                  alt={event.title}
-                  className="w-full h-full object-cover"
-                />
-                {event.sponsored && (
-                  <div className="absolute top-3 right-3 bg-accent text-foreground px-2 py-1 rounded-full text-xs flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" />
-                    Sponsored
-                  </div>
-                )}
-                <div className="absolute top-3 left-3 bg-black/50 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs">
-                  {event.category}
-                </div>
-              </div>
 
-              {/* Details */}
-              <div className="p-4">
-                <h3 className="text-lg font-semibold mb-1">{event.title}</h3>
-                <p className="text-sm text-muted-foreground mb-3">by {event.host}</p>
-                <p className="text-sm mb-3 text-foreground/80 line-clamp-2">{event.description}</p>
-
-                {/* Info */}
-                <div className="space-y-2 mb-3 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-primary" />
-                    <span className="text-muted-foreground">{event.date}</span>
+          {/* Desktop Grid View */}
+          <div className="hidden lg:block flex-1 overflow-y-auto p-8">
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 max-w-7xl mx-auto">
+              {filteredEvents.map((event) => (
+                <div
+                  key={event.id}
+                  onClick={() => navigate(`/events/${event.id}`)}
+                  className="bg-card rounded-2xl overflow-hidden shadow-sm border border-border hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group"
+                >
+                  <div className="relative h-48 overflow-hidden">
+                    <img 
+                      src={event.image_url || 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=800'} 
+                      alt={event.title} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                    />
+                    <div className="absolute top-3 left-3 bg-black/50 backdrop-blur-sm text-white px-2 py-1 rounded-md text-xs">
+                      {event.category}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-primary" />
-                    <span className="text-muted-foreground">{event.location}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-primary" />
-                    <span className="text-muted-foreground">{event.attendees}/{event.maxAttendees} going</span>
+                  <div className="p-4">
+                    <h3 className="font-bold text-lg mb-1 group-hover:text-primary transition-colors">{event.title}</h3>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                      <MapPin size={14} />
+                      <span className="truncate">{event.location}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm pt-3 border-t border-border">
+                      <div className="flex items-center gap-2 text-primary font-medium">
+                        <Calendar size={14} />
+                        <span>{formatDate(event.event_date)}</span>
+                      </div>
+                      <div className="text-muted-foreground font-medium">
+                        {event.attendees || 0}/{event.max_attendees} Plätze
+                      </div>
+                    </div>
                   </div>
                 </div>
-
-                {/* Tags */}
-                <div className="flex flex-wrap gap-1.5">
-                  {event.tags.map((tag, i) => (
-                    <span key={i} className="px-2 py-1 bg-secondary rounded-full text-xs">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
+              ))}
             </div>
-            ))}
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }

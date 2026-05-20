@@ -7,7 +7,7 @@ export function RegisterFlow() {
   const [step, setStep] = useState(1);
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
-  // Form data
+  // Form data states
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -90,32 +90,41 @@ export function RegisterFlow() {
       {/* Header */}
       <div className="px-6 lg:px-8 pt-12 pb-6 bg-white border-b border-border max-w-3xl mx-auto w-full">
         <div className="flex items-center justify-between mb-4">
-          {step > 1 && (
-            <button
-              onClick={() => setStep(step - 1)}
-              className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center hover:bg-muted transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-          )}
-          <div className={step === 1 ? 'mx-auto' : ''}>
+          {/* Dynamischer Zurückknopf */}
+          <button
+            onClick={() => {
+              if (step === 1) {
+                navigate('/login');
+              } else {
+                setStep(step - 1);
+              }
+            }}
+            className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center hover:bg-muted transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 text-foreground" />
+          </button>
+
+          <div className="flex-1 flex justify-center">
             <img
               src="/src/imports/ChatGPT_Image_28._Apr._2026,_10_11_33.png"
               alt="Duality Logo"
               className="h-12 w-auto"
             />
           </div>
+
+          {/* Symmetrischer Platzhalter */}
           <div className="w-10"></div>
         </div>
-        <h2 className="text-2xl text-foreground text-center">Konto erstellen</h2>
+        
+        <h2 className="text-2xl font-bold text-foreground text-center">Konto erstellen</h2>
         <p className="text-muted-foreground text-center text-sm mt-1">Werde Teil der DHBW Community</p>
 
-        {/* Progress */}
+        {/* Progress Bar */}
         <div className="flex gap-2 mt-6">
           {[1, 2, 3, 4].map((s) => (
             <div
               key={s}
-              className={`flex-1 h-1 rounded-full ${s <= step ? 'bg-primary' : 'bg-secondary'}`}
+              className={`flex-1 h-1.5 rounded-full transition-all duration-300 ${s <= step ? 'bg-primary' : 'bg-secondary'}`}
             />
           ))}
         </div>
@@ -123,22 +132,11 @@ export function RegisterFlow() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-6 lg:px-8 py-6 max-w-3xl mx-auto w-full">
-        {/* Step 1: Personal Data + Profile Picture */}
         {step === 1 && (
-          <div className="space-y-6">
-            {/* Profile Picture Upload */}
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="flex flex-col items-center mb-6">
-              <input
-                type="file"
-                id="profile-pic"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-              />
-              <label
-                htmlFor="profile-pic"
-                className="w-32 h-32 rounded-full border-2 border-dashed border-primary bg-secondary flex items-center justify-center cursor-pointer hover:bg-muted transition-colors mb-3 overflow-hidden relative group"
-              >
+              <input type="file" id="profile-pic" accept="image/*" onChange={handleImageUpload} className="hidden" />
+              <label htmlFor="profile-pic" className="w-32 h-32 rounded-full border-2 border-dashed border-primary bg-secondary flex items-center justify-center cursor-pointer hover:bg-muted transition-colors mb-3 overflow-hidden relative group">
                 {profileImage ? (
                   <>
                     <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
@@ -150,241 +148,75 @@ export function RegisterFlow() {
                   <Camera className="w-10 h-10 text-primary" />
                 )}
               </label>
-              <p className="text-sm font-medium text-foreground mb-1">Profilbild hinzufügen</p>
-              <p className="text-xs text-muted-foreground">Später überspringen</p>
+              <p className="text-sm font-medium text-foreground">Profilbild hinzufügen</p>
             </div>
 
-            {/* Personal Info */}
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm text-muted-foreground mb-1.5 block">Vorname</label>
-                <input
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="Max"
-                  className="w-full px-4 py-3 bg-input-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
-                />
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground mb-1.5 block">Nachname</label>
-                <input
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Mustermann"
-                  className="w-full px-4 py-3 bg-input-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
-                />
-              </div>
+              <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Vorname" className="w-full px-4 py-3 bg-secondary/30 border border-border rounded-xl focus:border-primary outline-none" />
+              <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Nachname" className="w-full px-4 py-3 bg-secondary/30 border border-border rounded-xl focus:border-primary outline-none" />
             </div>
-
-            <div>
-              <label className="text-sm text-muted-foreground mb-1.5 block">DHBW E-Mail-Adresse</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="max.mustermann@dhbw.de"
-                className="w-full px-4 py-3 bg-input-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm text-muted-foreground mb-1.5 block">Passwort erstellen</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mindestens 8 Zeichen"
-                className="w-full px-4 py-3 bg-input-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm text-muted-foreground mb-1.5 block">Passwort bestätigen</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Passwort wiederholen"
-                className="w-full px-4 py-3 bg-input-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
-              />
-              {confirmPassword && password !== confirmPassword && (
-                <p className="text-xs text-destructive mt-1">Passwörter stimmen nicht überein</p>
-              )}
-            </div>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="DHBW E-Mail-Adresse" className="w-full px-4 py-3 bg-secondary/30 border border-border rounded-xl focus:border-primary outline-none" />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Passwort" className="w-full px-4 py-3 bg-secondary/30 border border-border rounded-xl focus:border-primary outline-none" />
+            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Passwort bestätigen" className="w-full px-4 py-3 bg-secondary/30 border border-border rounded-xl focus:border-primary outline-none" />
           </div>
         )}
 
-        {/* Step 2: Study Info */}
         {step === 2 && (
-          <div className="space-y-6">
-            <h3 className="text-lg font-medium text-foreground">Studienbezogene Angaben</h3>
-
-            <div>
-              <label className="text-sm text-muted-foreground mb-1.5 block">DHBW Standort</label>
-              <select
-                value={campus}
-                onChange={(e) => setCampus(e.target.value)}
-                className="w-full px-4 py-3 bg-input-background border border-border rounded-xl text-foreground focus:border-primary focus:outline-none transition-colors appearance-none"
-              >
-                <option value="">Standort wählen</option>
-                {campuses.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm text-muted-foreground mb-1.5 block">Studiengang</label>
-              <select
-                value={major}
-                onChange={(e) => setMajor(e.target.value)}
-                className="w-full px-4 py-3 bg-input-background border border-border rounded-xl text-foreground focus:border-primary focus:outline-none transition-colors appearance-none"
-              >
-                <option value="">Studiengang wählen</option>
-                {majors.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm text-muted-foreground mb-1.5 block">Semester</label>
-              <select
-                value={semester}
-                onChange={(e) => setSemester(e.target.value)}
-                className="w-full px-4 py-3 bg-input-background border border-border rounded-xl text-foreground focus:border-primary focus:outline-none transition-colors appearance-none"
-              >
-                <option value="">Semester wählen</option>
-                {[1, 2, 3, 4, 5, 6].map((s) => (
-                  <option key={s} value={s}>{s}. Semester</option>
-                ))}
-              </select>
-            </div>
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <h3 className="text-lg font-medium">Studienbezogene Angaben</h3>
+            <select value={campus} onChange={(e) => setCampus(e.target.value)} className="w-full px-4 py-3 bg-secondary/30 border border-border rounded-xl outline-none">
+              <option value="">Standort wählen</option>
+              {campuses.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select value={major} onChange={(e) => setMajor(e.target.value)} className="w-full px-4 py-3 bg-secondary/30 border border-border rounded-xl outline-none">
+              <option value="">Studiengang wählen</option>
+              {majors.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+            <select value={semester} onChange={(e) => setSemester(e.target.value)} className="w-full px-4 py-3 bg-secondary/30 border border-border rounded-xl outline-none">
+              <option value="">Semester wählen</option>
+              {[1, 2, 3, 4, 5, 6].map(s => <option key={s} value={s}>{s}. Semester</option>)}
+            </select>
           </div>
         )}
 
-        {/* Step 3: Community/Matching */}
         {step === 3 && (
-          <div className="space-y-6">
-            <h3 className="text-lg font-medium text-foreground">Community & Matching</h3>
-
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">Interessen auswählen</label>
-              <div className="grid grid-cols-2 gap-2">
-                {interests.map((interest) => (
-                  <button
-                    key={interest.id}
-                    type="button"
-                    onClick={() => toggleInterest(interest.id)}
-                    className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 transition-colors ${
-                      selectedInterests.includes(interest.id)
-                        ? 'bg-primary text-white'
-                        : 'bg-secondary text-foreground border border-border'
-                    }`}
-                  >
-                    <span>{interest.emoji}</span>
-                    <span>{interest.label}</span>
-                  </button>
-                ))}
-              </div>
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <h3 className="text-lg font-medium">Community & Matching</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {interests.map(interest => (
+                <button key={interest.id} onClick={() => toggleInterest(interest.id)} className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 transition-all ${selectedInterests.includes(interest.id) ? 'bg-primary text-white' : 'bg-secondary/50 text-foreground border border-border'}`}>
+                  <span>{interest.emoji}</span> {interest.label}
+                </button>
+              ))}
             </div>
-
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">Freizeittyp</label>
-              <div className="space-y-2">
-                {lifestyles.map((l) => (
-                  <button
-                    key={l}
-                    type="button"
-                    onClick={() => setLifestyle(l)}
-                    className={`w-full px-4 py-3 rounded-xl text-sm text-left transition-colors ${
-                      lifestyle === l
-                        ? 'bg-primary text-white'
-                        : 'bg-secondary text-foreground border border-border'
-                    }`}
-                  >
-                    {l}
-                  </button>
-                ))}
-              </div>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Freizeittyp</p>
+              {lifestyles.map(l => (
+                <button key={l} onClick={() => setLifestyle(l)} className={`w-full px-4 py-3 rounded-xl text-sm text-left transition-all ${lifestyle === l ? 'bg-primary text-white' : 'bg-secondary/50 border border-border'}`}>{l}</button>
+              ))}
             </div>
-
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">Aktuelle Phase</label>
-              <div className="space-y-2">
-                {phases.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setPhase(p)}
-                    className={`w-full px-4 py-3 rounded-xl text-sm text-left transition-colors ${
-                      phase === p
-                        ? 'bg-primary text-white'
-                        : 'bg-secondary text-foreground border border-border'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Aktuelle Phase</p>
+              {phases.map(p => (
+                <button key={p} onClick={() => setPhase(p)} className={`w-full px-4 py-3 rounded-xl text-sm text-left transition-all ${phase === p ? 'bg-primary text-white' : 'bg-secondary/50 border border-border'}`}>{p}</button>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Step 4: Bio & Confirmation */}
         {step === 4 && (
-          <div className="space-y-6">
-            <h3 className="text-lg font-medium text-foreground">Finalisierung</h3>
-
-            <div>
-              <label className="text-sm text-muted-foreground mb-1.5 block">Über mich (optional)</label>
-              <textarea
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                placeholder="Erzähl etwas über dich..."
-                rows={4}
-                className="w-full px-4 py-3 bg-input-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors resize-none"
-              />
-            </div>
-
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <h3 className="text-lg font-medium">Finalisierung</h3>
+            <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Über mich..." rows={4} className="w-full px-4 py-3 bg-secondary/30 border border-border rounded-xl outline-none resize-none" />
             <div className="space-y-3">
               <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={acceptTerms}
-                  onChange={(e) => setAcceptTerms(e.target.checked)}
-                  className="w-5 h-5 rounded border-border mt-0.5 cursor-pointer accent-primary"
-                />
-                <span className="text-sm text-foreground leading-relaxed">
-                  Ich akzeptiere die <span className="text-primary">AGB</span> und{' '}
-                  <span className="text-primary">Datenschutzerklärung</span>
-                </span>
+                <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} className="w-5 h-5 rounded accent-primary mt-0.5" />
+                <span className="text-sm">Ich akzeptiere die AGB und Datenschutzbestimmungen</span>
               </label>
-
               <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={confirmStudent}
-                  onChange={(e) => setConfirmStudent(e.target.checked)}
-                  className="w-5 h-5 rounded border-border mt-0.5 cursor-pointer accent-primary"
-                />
-                <span className="text-sm text-foreground leading-relaxed">
-                  Ich bin eingeschriebener DHBW Student
-                </span>
+                <input type="checkbox" checked={confirmStudent} onChange={(e) => setConfirmStudent(e.target.checked)} className="w-5 h-5 rounded accent-primary mt-0.5" />
+                <span className="text-sm">Ich bin eingeschriebener DHBW Student</span>
               </label>
-            </div>
-
-            {/* Summary */}
-            <div className="bg-secondary rounded-xl p-4 border border-border">
-              <p className="text-sm font-medium text-foreground mb-2">Zusammenfassung</p>
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <p>📧 {email}</p>
-                <p>🎓 {major} • {semester}. Semester</p>
-                <p>📍 {campus}</p>
-                <p>🎯 {selectedInterests.length} Interessen</p>
-              </div>
             </div>
           </div>
         )}
@@ -393,33 +225,16 @@ export function RegisterFlow() {
       {/* Footer */}
       <div className="px-6 lg:px-8 py-4 border-t border-border bg-white max-w-3xl mx-auto w-full">
         <button
-          onClick={() => {
-            if (step < 4) {
-              setStep(step + 1);
-            } else {
-              handleSubmit();
-            }
-          }}
+          onClick={() => step < 4 ? setStep(step + 1) : handleSubmit()}
           disabled={!isStepValid()}
-          className="w-full bg-primary hover:bg-red-700 text-white py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-primary hover:bg-red-700 text-white py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          {step < 4 ? (
-            <>
-              Weiter
-              <ChevronRight className="w-5 h-5" />
-            </>
-          ) : (
-            'Konto erstellen'
-          )}
+          {step < 4 ? (<>Weiter <ChevronRight className="w-5 h-5" /></>) : 'Konto erstellen'}
         </button>
 
         <p className="text-center text-muted-foreground text-sm mt-4">
           Bereits registriert?{' '}
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="text-primary hover:underline"
-          >
+          <button onClick={() => navigate('/login')} className="text-primary font-bold hover:underline">
             Jetzt einloggen
           </button>
         </p>
