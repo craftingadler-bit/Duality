@@ -158,7 +158,7 @@ export function HomeView() {
                 className="relative z-10" // z-index hierhin verschoben
               >
                 <img
-                  src="logo.png"
+                  src="/logo.png"
                   
                   // ÄNDERUNGEN HIER: object-contain und max-w-full hinzugefügt
                   className="h-64 lg:h-80 w-auto max-w-full object-contain drop-shadow-xl"
