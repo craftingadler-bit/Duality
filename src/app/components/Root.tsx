@@ -45,11 +45,11 @@ export function Root() {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:border-r lg:border-border lg:bg-card">
         {/* Logo */}
-        <div className="p-6 border-b border-border">
+        <div className="p-8 border-b border-border">
           <img
             src={logoImage}
             alt="Project Connect Logo"
-            className="h-12 w-auto cursor-pointer"
+            className="h-20 w-auto cursor-pointer"
             onClick={() => navigate('/')}
           />
         </div>
