@@ -49,7 +49,7 @@ export function Root() {
           <img
             src={logoImage}
             alt="Project Connect Logo"
-            className="h-40 w-auto cursor-pointer"
+            className="h-25 w-auto cursor-pointer"
             onClick={() => navigate('/')}
           />
         </div>
