@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router';
 import { Home, Calendar, ShoppingBag, Building2, User, HelpCircle, Settings } from 'lucide-react';
+import logoImage from './logo.png';
 
 export function Root() {
   const navigate = useNavigate();
@@ -46,7 +47,7 @@ export function Root() {
         {/* Logo */}
         <div className="p-6 border-b border-border">
           <img
-            src="/src/imports/ChatGPT_Image_28._Apr._2026,_10_11_33.png"
+            src={logoImage}
             alt="Project Connect Logo"
             className="h-12 w-auto cursor-pointer"
             onClick={() => navigate('/')}
